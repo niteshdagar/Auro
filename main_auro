@@ -1,9 +1,87 @@
-from xml.dom import minidom
+import xml.etree.cElementTree as ET
 
-file = minidom.parse('Orders.xml')
-models = file.getElementsByTagName('AddOrder')
+tree = ET.ElementTree(file = 'orders.xml')
 
-for model in models:
+root = tree.getroot()
+
+
+class Book:
+    m_map={}
+    buy_map ={}
+    sell_map ={}
+
+    def handleBuy(self,price, volume,orderID):
+        self.buy_map[(price,orderID)] = volume
+        self.buy_map = sorted(self.buy_map, reverse=True)
+        self.m_map[orderID] = price
+
+        while True:
+            temp1 = self.buy_map[0]
+            temp2 = self.sell_map[0]
+
+            if temp1[0] < temp2[0]:
+                break
+
+            t = min(self.buy_map[temp1], self.sell_map[temp2])
+            self.buy_map[temp1] -= t
+            self.sell_map[temp2] -= t
+
+            if self.buy_map[temp1] == 0:
+                del self.buy_map[temp1] 
+            if self.sell_map[temp2] == 0:
+                del self.sell_map[temp2] 
+
+
+    def handleSell(self,price, volume, orderID):
+        self.sell_map[(price,orderID)] = volume
+        self.sell_map = sorted(self.sell_map)
+        self.m_map[orderID] = price
+
+        while True:
+            temp1 = self.buy_map[0]
+            temp2 = self.sell_map[0]
+
+            if temp1[0] < temp2[0]:
+                break
+
+            t = min(self.buy_map[temp1], self.sell_map[temp2])
+            self.buy_map[temp1] -= t
+            self.sell_map[temp2] -= t
+
+            if self.buy_map[temp1] == 0:
+                del self.buy_map[temp1] 
+            if self.sell_map[temp2] == 0:
+                del self.sell_map[temp2] 
+        
     
-    bookID = model.attributes['book']
-    print(bookID)
+
+    def dlt(self, orderID):
+        price = self.m_map[orderID]
+        if (orderID, price) in self.buy_map:
+            del self.buy_map[(orderID,price)]
+        if (orderID, price) in self.sell_map:
+            del self.sell_map[(orderID,price)]
+
+
+
+
+books = []
+books.append(Book())
+books.append(Book())
+books.append(Book())
+#book operation price volume orderId
+book_map = {"book-1":0, "book-2":1, "book-3":2}
+for chld in root:
+    if(chld.tag == 'AddOrder'):
+        if( chld.get('operation') == "BUY"):
+            books[book_map[chld.get('book')]].handleBuy( chld.get('price'), chld.get('volume'), chld.get('orderId') )
+        else:
+            books[book_map[chld.get('book')]].handleSell( chld.get('price'), chld.get('volume'), chld.get('orderId') )
+    else:
+        books[book_map[chld.get('book')]].dlt(chld.get('orderId'))
+
+    for book in books:
+        for value in book.buy_map:
+            print(book.buy_map[value]+'@'+value[0])
+        for value in book.sell_map:
+            print(book.sell_map[value]+'@'+value[0])

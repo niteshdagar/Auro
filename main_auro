@@ -1,0 +1,9 @@
+from xml.dom import minidom
+
+file = minidom.parse('Orders.xml')
+models = file.getElementsByTagName('AddOrder')
+
+for model in models:
+    
+    bookID = model.attributes['book']
+    print(bookID)
